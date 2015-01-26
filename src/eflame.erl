@@ -1,15 +1,23 @@
 -module(eflame).
--export([apply/2,
-         apply/3,
-         apply/4,
-         apply/5]).
 
--define(RESOLUTION, 1000). %% us
--record(dump, {stack=[], us=0, acc=[]}). % per-process state
+-export([
+    apply/2,
+    apply/3,
+    apply/4,
+    apply/5
+]).
 
 -define(DEFAULT_MODE, normal_with_children).
 -define(DEFAULT_OUTPUT_FILE, "stacks.out").
+-define(RESOLUTION, 1000). %% us
 
+-record(dump, {
+    stack = [],
+    us = 0,
+    acc = []
+}).
+
+%% public
 apply(F, A) ->
     apply1(?DEFAULT_MODE, ?DEFAULT_OUTPUT_FILE, {F, A}).
 
@@ -32,6 +40,7 @@ apply1(Mode, OutputFile, {Fun, Args}) ->
     ok = file:write_file(OutputFile, Bytes),
     Return.
 
+%% private
 apply_fun({M, F}, A) ->
     erlang:apply(M, F, A);
 apply_fun(F, A) ->
