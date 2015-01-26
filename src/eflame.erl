@@ -9,7 +9,7 @@
 
 -define(DEFAULT_MODE, normal_with_children).
 -define(DEFAULT_OUTPUT_FILE, "stacks.out").
--define(RESOLUTION, 1000). %% us
+-define(RESOLUTION, 10). %% us
 
 -record(dump, {
     stack = [],
