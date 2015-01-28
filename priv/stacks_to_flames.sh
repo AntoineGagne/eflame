@@ -1,5 +1,5 @@
 #!/bin/bash
-# usage: deps/eflame/stacks_to_flames.sh stacks.out
+# usage: deps/eflame/priv/stacks_to_flames.sh stacks.out
 
 me="$(dirname $0)"
 f=${1:-stacks.out}
