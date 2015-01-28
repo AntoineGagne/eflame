@@ -1,14 +1,9 @@
 -module(eflame).
 
 -export([
-    apply/2,
-    apply/3,
-    apply/4,
     apply/5
 ]).
 
--define(DEFAULT_MODE, normal_with_children).
--define(DEFAULT_OUTPUT_FILE, "stacks.out").
 -define(RESOLUTION, 10). %% us
 
 -record(dump, {
@@ -18,18 +13,10 @@
 }).
 
 %% public
-apply(F, A) ->
-    apply1(?DEFAULT_MODE, ?DEFAULT_OUTPUT_FILE, {F, A}).
-
-apply(M, F, A) ->
-    apply1(?DEFAULT_MODE, ?DEFAULT_OUTPUT_FILE, {{M, F}, A}).
-
-apply(Mode, OutputFile, Fun, Args) ->
-    apply1(Mode, OutputFile, {Fun, Args}).
-
 apply(Mode, OutputFile, M, F, A) ->
     apply1(Mode, OutputFile, {{M, F}, A}).
 
+%% private
 apply1(Mode, OutputFile, {Fun, Args}) ->
     Tracer = spawn_tracer(),
 
@@ -40,7 +27,6 @@ apply1(Mode, OutputFile, {Fun, Args}) ->
     ok = file:write_file(OutputFile, Bytes),
     Return.
 
-%% private
 apply_fun({M, F}, A) ->
     erlang:apply(M, F, A);
 apply_fun(F, A) ->
@@ -69,9 +55,7 @@ spawn_tracer() -> spawn(fun() -> trace_listener(dict:new()) end).
 trace_flags(normal) ->
     [call, arity, return_to, timestamp, running];
 trace_flags(normal_with_children) ->
-    [call, arity, return_to, timestamp, running, set_on_spawn];
-trace_flags(like_fprof) -> % fprof does this as 'normal', will not work!
-    [call, return_to, running, procs, garbage_collection, arity, timestamp, set_on_spawn].
+    [call, arity, return_to, timestamp, running, set_on_spawn].
 
 trace_listener(State) ->
     receive
