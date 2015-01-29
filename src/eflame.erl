@@ -4,7 +4,7 @@
     apply/5
 ]).
 
--define(RESOLUTION, 10).
+-define(RESOLUTION, 100).
 
 -record(dump, {
     stack = [],
@@ -102,22 +102,19 @@ trace_listener(State) ->
             Bytes = iolist_to_binary([dump_to_iolist(TPid, Dump) || {TPid, [Dump]} <- dict:to_list(State)]),
             Pid ! {bytes, Bytes};
         Term ->
+            io:format("~p~n", [Term]),
             trace_ts = element(1, Term),
-            PidS = element(2, Term),
+            Pid = element(2, Term),
 
-            PidState = case dict:find(PidS, State) of
-                {ok, [Ps]} ->
-                    Ps;
-                error ->
-                    #dump {}
+            PidState2 = case dict:find(Pid, State) of
+                {ok, [PidState]} -> PidState;
+                error -> #dump {}
             end,
 
-            NewPidState = trace_proc_stream(Term, PidState),
-
-            D1 = dict:erase(PidS, State),
-            D2 = dict:append(PidS, NewPidState, D1),
-
-            trace_listener(D2)
+            PidState3 = trace_proc_stream(Term, PidState2),
+            State2 = dict:erase(Pid, State),
+            State3 = dict:append(Pid, PidState3, State2),
+            trace_listener(State3)
     end.
 
 trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, {_, _, _} = CallerMFA}, Ts}, #dump {stack = []} = State) ->
