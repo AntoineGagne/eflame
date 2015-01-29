@@ -27,7 +27,7 @@ apply(Mode, OutputFile, M, F, A) ->
     Return.
 
 %% private
-dump_to_iolist(Pid, #dump{acc=Acc}) ->
+dump_to_iolist(Pid, #dump {acc = Acc}) ->
     [[pid_to_list(Pid), <<";">>, stack_collapse(S), <<"\n">>] || S <- lists:reverse(Acc)].
 
 entry_to_iolist({M, F, A}) ->
@@ -116,11 +116,14 @@ trace_listener(State) ->
             end,
 
             PidState3 = trace_proc_stream(Term, PidState2),
+            lager:info("~p~n", [PidState3#dump.stack]),
+
             State2 = dict:erase(Pid, State),
             State3 = dict:append(Pid, PidState3, State2),
             trace_listener(State3)
     end.
 
+% call
 trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, {_, _, _} = CallerMFA}, Ts}, #dump {stack = []} = State) ->
     new_state(State, [MFA, CallerMFA], Ts);
 
@@ -136,6 +139,7 @@ trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, CpMFA}, Ts}, #dump {stack = [C
 trace_proc_stream({trace_ts, _Ps, call, _MFA, {cp, _}, _Ts} = TraceTs, #dump {stack=[_ | StackRest]} = State) ->
     trace_proc_stream(TraceTs, State#dump {stack = StackRest});
 
+% return_to
 trace_proc_stream({trace_ts, _Ps, return_to, MFA, Ts}, #dump {stack = [_Current, MFA | Stack]} = State) ->
     new_state(State, [MFA | Stack], Ts);
 
@@ -145,15 +149,18 @@ trace_proc_stream({trace_ts, _Ps, return_to, undefined, _Ts}, State) ->
 trace_proc_stream({trace_ts, _Ps, return_to, _, _Ts}, State) ->
     State;
 
+% in
 trace_proc_stream({trace_ts, _Ps, in, _MFA, Ts}, #dump {stack = [sleep | Stack]} = State) ->
     new_state(new_state(State, [sleep | Stack], Ts), Stack, Ts);
 
 trace_proc_stream({trace_ts, _Ps, in, _MFA, Ts}, #dump {stack = Stack} = State) ->
     new_state(State, Stack, Ts);
 
+% out
 trace_proc_stream({trace_ts, _Ps, out, _MFA, Ts}, #dump {stack = Stack} = State) ->
     new_state(State, [sleep | Stack], Ts);
 
+% other
 trace_proc_stream(TraceTs, State) ->
     io:format("trace_proc_stream: unknown trace: ~p~n", [TraceTs]),
     State.
