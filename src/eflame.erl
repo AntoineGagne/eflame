@@ -20,7 +20,6 @@ apply(Mode, OutputFile, M, F, A) ->
     Return = (catch erlang:apply(M, F, A)),
     case stop_trace(Tracer, self()) of
         {ok, Bytes} ->
-            lager:info("~p~n", [Bytes]),
             ok = file:write_file(OutputFile, Bytes);
         {error, timeout} ->
             ok = file:write_file(OutputFile, <<>>)
@@ -42,10 +41,10 @@ intersperse(_, []) -> [];
 intersperse(_, [X]) -> [X];
 intersperse(Sep, [X | Xs]) -> [X, Sep | intersperse(Sep, Xs)].
 
-new_state(#dump {
+update_state(Stack, Ts, #dump {
         us = Us,
         acc = Acc
-    } = State, Stack, Ts) ->
+    } = State) ->
 
     UsTs = ts_micro(Ts),
     case Us of
@@ -116,8 +115,6 @@ trace_listener(State) ->
             end,
 
             PidState3 = trace_proc_stream(Term, PidState2),
-            lager:info("~p~n", [Term]),
-            lager:info("~p~n", [PidState3#dump.stack]),
 
             State2 = dict:erase(Pid, State),
             State3 = dict:append(Pid, PidState3, State2),
@@ -126,26 +123,26 @@ trace_listener(State) ->
 
 % call
 trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, {_, _, _} = CallerMFA}, Ts}, #dump {stack = []} = State) ->
-    new_state(State, [MFA, CallerMFA], Ts);
+    update_state([MFA, CallerMFA], Ts, State);
 
 trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, undefined}, Ts}, #dump {stack = []} = State) ->
-    new_state(State, [MFA], Ts);
+    update_state([MFA], Ts, State);
 
 trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, MFA}, Ts}, #dump {stack = [MFA | Stack]} = State) ->
-    new_state(State, [MFA | Stack], Ts);
+    update_state([MFA | Stack], Ts, State);
 
 trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, CpMFA}, Ts}, #dump {stack = [CpMFA | Stack]} = State) ->
-    new_state(State, [MFA, CpMFA | Stack], Ts);
+    update_state([MFA, CpMFA | Stack], Ts, State);
 
 trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, undefined}, Ts}, #dump {stack = Stack} = State) ->
-    new_state(State, [MFA | Stack], Ts);
+    update_state([MFA | Stack], Ts, State);
 
 trace_proc_stream({trace_ts, _Ps, call, _MFA, {cp, _}, _Ts} = TraceTs, #dump {stack = [_ | StackRest]} = State) ->
     trace_proc_stream(TraceTs, State#dump {stack = StackRest});
 
 % return_to
 trace_proc_stream({trace_ts, _Ps, return_to, MFA, Ts}, #dump {stack = [_Current, MFA | Stack]} = State) ->
-    new_state(State, [MFA | Stack], Ts);
+    update_state([MFA | Stack], Ts, State);
 
 trace_proc_stream({trace_ts, _Ps, return_to, undefined, _Ts}, State) ->
     State;
@@ -155,18 +152,18 @@ trace_proc_stream({trace_ts, _Ps, return_to, _, _Ts}, State) ->
 
 % in
 trace_proc_stream({trace_ts, _Ps, in, _MFA, Ts}, #dump {stack = [sleep | Stack]} = State) ->
-    new_state(new_state(State, [sleep | Stack], Ts), Stack, Ts);
+    update_state(Stack, Ts, update_state([sleep | Stack], Ts, State));
 
 trace_proc_stream({trace_ts, _Ps, in, _MFA, Ts}, #dump {stack = Stack} = State) ->
-    new_state(State, Stack, Ts);
+    update_state(Stack, Ts, State);
 
 % out
 trace_proc_stream({trace_ts, _Ps, out, _MFA, Ts}, #dump {stack = Stack} = State) ->
-    new_state(State, [sleep | Stack], Ts);
+    update_state([sleep | Stack], Ts, State);
 
 % other
 trace_proc_stream(TraceTs, State) ->
-    io:format("trace_proc_stream: unknown trace: ~p~n", [TraceTs]),
+    io:format("unexpected trace: ~p~n", [TraceTs]),
     State.
 
 ts_micro({Mega, Secs, Micro}) ->
