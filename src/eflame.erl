@@ -18,9 +18,12 @@ apply(Mode, OutputFile, M, F, A) ->
 
     start_trace(Tracer, self(), Mode),
     Return = (catch erlang:apply(M, F, A)),
-    {ok, Bytes} = stop_trace(Tracer, self()),
-
-    ok = file:write_file(OutputFile, Bytes),
+    case stop_trace(Tracer, self()) of
+        {ok, Bytes} ->
+            ok = file:write_file(OutputFile, Bytes);
+        {error, timeout} ->
+            ok = file:write_file(OutputFile, <<>>)
+    end,
     Return.
 
 %% private
@@ -85,7 +88,8 @@ stop_trace(Tracer, Target) ->
     Tracer ! {dump_bytes, self()},
 
     Return = receive {bytes, B} -> {ok, B}
-    after 1000 -> {error, timeout}
+    after 10000 ->
+        {error, timeout}
     end,
 
     exit(Tracer, normal),
@@ -102,7 +106,7 @@ trace_listener(State) ->
             Bytes = iolist_to_binary([dump_to_iolist(TPid, Dump) || {TPid, [Dump]} <- dict:to_list(State)]),
             Pid ! {bytes, Bytes};
         Term ->
-            io:format("~p~n", [Term]),
+            lager:info("~p~n", [Term]),
             trace_ts = element(1, Term),
             Pid = element(2, Term),
 
