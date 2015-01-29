@@ -46,14 +46,14 @@ new_state(#dump {
         acc = Acc
     } = State, Stack, Ts) ->
 
-    UsTs = us(Ts),
+    UsTs = ts_micro(Ts),
     case Us of
         0 -> State#dump {
             us = UsTs,
             stack = Stack
         };
         _ when Us > 0 ->
-            Diff = us(Ts) - Us,
+            Diff = ts_micro(Ts) - Us,
             NOverlaps = Diff div ?RESOLUTION,
             Overlapped = NOverlaps * ?RESOLUTION,
 
@@ -115,6 +115,8 @@ trace_listener(State) ->
             end,
 
             PidState3 = trace_proc_stream(Term, PidState2),
+            lager:info("~p~n", [Term]),
+            lager:info("~p~n", [PidState3#dump.stack]),
 
             State2 = dict:erase(Pid, State),
             State3 = dict:append(Pid, PidState3, State2),
@@ -137,7 +139,7 @@ trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, CpMFA}, Ts}, #dump {stack = [C
 trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, undefined}, Ts}, #dump {stack = Stack} = State) ->
     new_state(State, [MFA | Stack], Ts);
 
-trace_proc_stream({trace_ts, _Ps, call, _MFA, {cp, _}, _Ts} = TraceTs, #dump {stack=[_ | StackRest]} = State) ->
+trace_proc_stream({trace_ts, _Ps, call, _MFA, {cp, _}, _Ts} = TraceTs, #dump {stack = [_ | StackRest]} = State) ->
     trace_proc_stream(TraceTs, State#dump {stack = StackRest});
 
 % return_to
@@ -166,5 +168,5 @@ trace_proc_stream(TraceTs, State) ->
     io:format("trace_proc_stream: unknown trace: ~p~n", [TraceTs]),
     State.
 
-us({Mega, Secs, Micro}) ->
+ts_micro({Mega, Secs, Micro}) ->
     Mega * 1000000 * 1000000 + Secs * 1000000 + Micro.
