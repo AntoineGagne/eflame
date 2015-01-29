@@ -20,6 +20,7 @@ apply(Mode, OutputFile, M, F, A) ->
     Return = (catch erlang:apply(M, F, A)),
     case stop_trace(Tracer, self()) of
         {ok, Bytes} ->
+            lager:info("~p~n", [Bytes]),
             ok = file:write_file(OutputFile, Bytes);
         {error, timeout} ->
             ok = file:write_file(OutputFile, <<>>)
