@@ -4,7 +4,7 @@
     apply/5
 ]).
 
--define(RESOLUTION, 5).
+-define(RESOLUTION, 1).
 
 -record(dump, {
     stack = [],
