@@ -136,6 +136,9 @@ trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, MFA}, Ts}, #dump {stack = [MFA
 trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, CpMFA}, Ts}, #dump {stack = [CpMFA | Stack]} = State) ->
     update_state([MFA, CpMFA | Stack], Ts, State);
 
+trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, undefined}, Ts}, #dump {stack = [MFA | _] = Stack} = State) ->
+    update_state(Stack, Ts, State);
+
 trace_proc_stream({trace_ts, _Ps, call, MFA, {cp, undefined}, Ts}, #dump {stack = Stack} = State) ->
     update_state([MFA | Stack], Ts, State);
 
