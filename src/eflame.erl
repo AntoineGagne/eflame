@@ -115,8 +115,6 @@ trace_listener(State) ->
             end,
 
             PidState3 = trace_proc_stream(Term, PidState2),
-            lager:info("~p~n", [Term]),
-            lager:info("~p~n", [PidState3#dump.stack]),
 
             State2 = dict:erase(Pid, State),
             State3 = dict:append(Pid, PidState3, State2),
