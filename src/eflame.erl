@@ -4,7 +4,7 @@
     apply/5
 ]).
 
--define(RESOLUTION, 100).
+-define(RESOLUTION, 1).
 
 -record(dump, {
     stack = [],
@@ -106,7 +106,6 @@ trace_listener(State) ->
             Bytes = iolist_to_binary([dump_to_iolist(TPid, Dump) || {TPid, [Dump]} <- dict:to_list(State)]),
             Pid ! {bytes, Bytes};
         Term ->
-            lager:info("~p~n", [Term]),
             trace_ts = element(1, Term),
             Pid = element(2, Term),
 
@@ -116,7 +115,6 @@ trace_listener(State) ->
             end,
 
             PidState3 = trace_proc_stream(Term, PidState2),
-            lager:info("~p~n", [PidState3#dump.stack]),
 
             State2 = dict:erase(Pid, State),
             State3 = dict:append(Pid, PidState3, State2),
