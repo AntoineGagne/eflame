@@ -4,7 +4,7 @@
          apply/4,
          apply/5]).
 
--define(RESOLUTION, 1000). %% us
+-define(RESOLUTION, 10). %% us
 -record(dump, {stack=[], us=0, acc=[]}). % per-process state
 
 -define(DEFAULT_MODE, normal_with_children).
@@ -169,4 +169,3 @@ intercalate(Sep, Xs) -> lists:concat(intersperse(Sep, Xs)).
 intersperse(_, []) -> [];
 intersperse(_, [X]) -> [X];
 intersperse(Sep, [X | Xs]) -> [X, Sep | intersperse(Sep, Xs)].
-
