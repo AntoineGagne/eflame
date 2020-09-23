@@ -4,7 +4,7 @@
          apply/4,
          apply/5]).
 
--define(RESOLUTION, 10). %% us
+-define(RESOLUTION, 5). %% us
 -record(dump, {stack=[], us=0, acc=[]}). % per-process state
 
 -define(DEFAULT_MODE, normal_with_children).
